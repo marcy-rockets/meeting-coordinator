@@ -263,6 +263,9 @@ function render() {
             ? `${regionalEndTime.toFormat('HH:mm')} <span class="next-day-label">(${regionalEndTime.toFormat('MM/dd')})</span>` 
             : regionalEndTime.toFormat('HH:mm');
 
+        const holidayIcon = state.lang === 'ja' ? '㊗️' : '🗓️';
+        const holidayLabel = holiday ? (state.lang === 'ja' ? (holiday.localName || holiday.name) : holiday.name) : '';
+
         const card = document.createElement('div');
         card.className = 'region-card card glass';
         const displayName = state.lang === 'en' ? (region.nameEn || region.name) : region.name;
@@ -277,7 +280,10 @@ function render() {
                 ${diff !== 0 ? `<span class="day-badge ${diff > 0 ? 'plus' : 'minus'}">${diff > 0 ? t.dayDiffPlus.replace('{n}', diff) : t.dayDiffMinus.replace('{n}', Math.abs(diff))}</span>` : ''}
             </div>
             <div class="region-date">${regionalTime.toFormat('yyyy/MM/dd')}</div>
-            ${holiday ? `<div class="holiday-badge" title="${holiday.name}"><span class="icon">㊗️</span> ${state.lang === 'ja' ? (holiday.localName || holiday.name) : holiday.name}</div>` : ''}
+            ${holiday ? `<div class="holiday-badge" title="${holiday.name}">
+                <span class="icon">${holidayIcon}</span>
+                <span class="holiday-text">${state.lang === 'en' ? 'Public Holiday: ' : ''}${holidayLabel}</span>
+            </div>` : ''}
         `;
         regionsList.appendChild(card);
     });
@@ -418,31 +424,42 @@ async function fetchHolidaysForAll() {
     const years = new Set();
     const baseDateTime = DateTime.fromISO(`${state.baseDate}T${state.baseTime}`, { zone: state.baseTimezone });
     if (!baseDateTime.isValid) return;
+    const baseEndDateTime = baseDateTime.plus({ minutes: state.duration });
 
     state.regions.forEach(r => {
         const regionalTime = baseDateTime.setZone(r.tz);
+        const regionalEndTime = baseEndDateTime.setZone(r.tz);
         if (regionalTime.isValid) years.add(regionalTime.year);
+        if (regionalEndTime.isValid) years.add(regionalEndTime.year);
     });
 
     state.fetchingHolidays = true;
     render();
+
+    const fetchPromises = [];
 
     for (const region of state.regions) {
         if (!region.country) continue;
         for (const year of years) {
             const key = `${region.country}-${year}`;
             if (!state.holidays[key]) {
-                try {
-                    // Using a reliable public holiday API with fallback and retries
-                    const res = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/${region.country}`);
-                    if (res.ok) {
-                        state.holidays[key] = await res.json();
+                const fetchPromise = (async () => {
+                    try {
+                        const res = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/${region.country}`);
+                        if (res.ok) {
+                            state.holidays[key] = await res.json();
+                        }
+                    } catch (e) {
+                        console.error("Holiday fetch error:", e);
                     }
-                } catch (e) {
-                    console.error("Holiday fetch error:", e);
-                }
+                })();
+                fetchPromises.push(fetchPromise);
             }
         }
+    }
+    
+    if (fetchPromises.length > 0) {
+        await Promise.all(fetchPromises);
     }
     
     state.fetchingHolidays = false;

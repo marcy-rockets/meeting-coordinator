@@ -38,8 +38,17 @@
                 <input type="date" id="base-date" class="styled-input">
             </div>
             <div class="input-group">
-                <label for="base-time">開始時間</label>
-                <input type="time" id="base-time" class="styled-input" step="900">
+                <label for="base-hour">開始時間</label>
+                <div class="time-select-group">
+                    <select id="base-hour" class="styled-input time-select"></select>
+                    <span class="time-separator">:</span>
+                    <select id="base-minute" class="styled-input time-select">
+                        <option value="00">00</option>
+                        <option value="15">15</option>
+                        <option value="30">30</option>
+                        <option value="45">45</option>
+                    </select>
+                </div>
             </div>
             <div class="input-group">
                 <label for="base-timezone">基準タイムゾーン</label>
@@ -54,7 +63,7 @@
                 </select>
             </div>
             <div class="input-group">
-                <label for="duration">期間 (分)</label>
+                <label for="duration">設定時間 (分)</label>
                 <input type="number" id="duration" class="styled-input" value="60" min="15" step="15">
             </div>
         </section>

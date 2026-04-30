@@ -22,7 +22,7 @@ const translations = {
         dateLabel: '日付',
         timeLabel: '開始時間',
         baseTzLabel: '基準タイムゾーン',
-        durationLabel: '期間 (分)',
+        durationLabel: '設定時間 (分)',
         participatingRegions: '参加地域',
         addRegion: '地域を追加 +',
         chatOutput: 'Chat用テキスト出力',
@@ -84,6 +84,16 @@ const searchResults = document.getElementById('search-results');
 
 // Initial Setup
 function init() {
+    // Populate hours
+    const hourSelect = document.getElementById('base-hour');
+    for (let i = 0; i < 24; i++) {
+        const h = i.toString().padStart(2, '0');
+        const opt = document.createElement('option');
+        opt.value = h;
+        opt.textContent = h;
+        hourSelect.appendChild(opt);
+    }
+
     const now = DateTime.now();
     // Round to nearest 15 minutes
     const roundedMinutes = Math.round(now.minute / 15) * 15;
@@ -93,11 +103,12 @@ function init() {
     state.baseTime = roundedNow.toFormat('HH:mm');
 
     baseDateInput.value = state.baseDate;
-    baseTimeInput.value = state.baseTime;
+    document.getElementById('base-hour').value = roundedNow.toFormat('HH');
+    document.getElementById('base-minute').value = roundedNow.toFormat('mm');
     baseTzSelect.value = state.baseTimezone;
 
     addEventListeners();
-    updateStaticText(); // Apply translations (including dropdown)
+    updateStaticText();
     render(); 
     fetchHolidaysForAll();
 }
@@ -108,10 +119,17 @@ function addEventListeners() {
         fetchHolidaysForAll();
         render();
     });
-    baseTimeInput.addEventListener('change', (e) => {
-        state.baseTime = e.target.value;
+    
+    const updateTime = () => {
+        const h = document.getElementById('base-hour').value;
+        const m = document.getElementById('base-minute').value;
+        state.baseTime = `${h}:${m}`;
         render();
-    });
+    };
+
+    document.getElementById('base-hour').addEventListener('change', updateTime);
+    document.getElementById('base-minute').addEventListener('change', updateTime);
+
     baseTzSelect.addEventListener('change', (e) => {
         state.baseTimezone = e.target.value;
         render();

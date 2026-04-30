@@ -190,6 +190,24 @@ body {
     transition: all 0.3s ease;
 }
 
+.time-select-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.time-select {
+    width: auto !important;
+    min-width: 85px;
+    text-align: center;
+}
+
+.time-separator {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--text-dim);
+}
+
 .styled-input:focus {
     outline: none;
     border-color: var(--accent-secondary);

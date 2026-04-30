@@ -68,7 +68,6 @@ const translations = {
 
 // DOM Elements
 const baseDateInput = document.getElementById('base-date');
-const baseTimeInput = document.getElementById('base-time');
 const baseTzSelect = document.getElementById('base-timezone');
 const durationInput = document.getElementById('duration');
 const regionsList = document.getElementById('regions-list');
@@ -86,6 +85,7 @@ const searchResults = document.getElementById('search-results');
 function init() {
     // Populate hours
     const hourSelect = document.getElementById('base-hour');
+    hourSelect.innerHTML = '';
     for (let i = 0; i < 24; i++) {
         const h = i.toString().padStart(2, '0');
         const opt = document.createElement('option');
@@ -95,7 +95,6 @@ function init() {
     }
 
     const now = DateTime.now();
-    // Round to nearest 15 minutes
     const roundedMinutes = Math.round(now.minute / 15) * 15;
     const roundedNow = now.set({ minute: 0, second: 0, millisecond: 0 }).plus({ minutes: roundedMinutes });
     
@@ -108,7 +107,7 @@ function init() {
     baseTzSelect.value = state.baseTimezone;
 
     addEventListeners();
-    updateStaticText();
+    updateStaticText(); 
     render(); 
     fetchHolidaysForAll();
 }
@@ -135,7 +134,7 @@ function addEventListeners() {
         render();
     });
     durationInput.addEventListener('change', (e) => {
-        state.duration = parseInt(e.target.value);
+        state.duration = parseInt(e.target.value) || 60;
         render();
     });
 
@@ -193,7 +192,7 @@ function updateStaticText() {
     document.querySelector('.app-header h1').innerHTML = t.title;
     document.querySelector('.app-header p').textContent = t.subtitle;
     document.querySelector('label[for="base-date"]').textContent = t.dateLabel;
-    document.querySelector('label[for="base-time"]').textContent = t.timeLabel;
+    document.querySelector('label[for="base-hour"]').textContent = t.timeLabel;
     document.querySelector('label[for="base-timezone"]').textContent = t.baseTzLabel;
     document.querySelector('label[for="duration"]').textContent = t.durationLabel;
     document.querySelector('.section-header h2').textContent = t.participatingRegions;
@@ -205,7 +204,6 @@ function updateStaticText() {
     closeModalBtn.textContent = t.cancel;
     document.querySelector('.modal-content h3').textContent = t.addRegion.replace(' +', '');
 
-    // Update Base Timezone Dropdown Options
     const tzOptions = {
         'ja': [
             { v: 'Asia/Tokyo', t: '日本 (JST)' },
@@ -241,6 +239,7 @@ function updateStaticText() {
 function render() {
     const t = translations[state.lang];
     const baseDateTime = DateTime.fromISO(`${state.baseDate}T${state.baseTime}`, { zone: state.baseTimezone });
+    if (!baseDateTime.isValid) return;
     const baseEndDateTime = baseDateTime.plus({ minutes: state.duration });
 
     regionsList.innerHTML = '';
@@ -396,13 +395,11 @@ function addRegion(regionData) {
 async function fetchHolidaysForAll() {
     const years = new Set();
     const baseDateTime = DateTime.fromISO(`${state.baseDate}T${state.baseTime}`, { zone: state.baseTimezone });
-    
-    // Check years for each region's local time
+    if (!baseDateTime.isValid) return;
+
     state.regions.forEach(r => {
         const regionalTime = baseDateTime.setZone(r.tz);
-        if (regionalTime.isValid) {
-            years.add(regionalTime.year);
-        }
+        if (regionalTime.isValid) years.add(regionalTime.year);
     });
 
     for (const region of state.regions) {
@@ -411,17 +408,12 @@ async function fetchHolidaysForAll() {
             const key = `${region.country}-${year}`;
             if (!state.holidays[key]) {
                 try {
-                    console.log(`Fetching holidays for ${key}...`);
                     const res = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/${region.country}`);
                     if (res.ok) {
-                        const data = await res.json();
-                        state.holidays[key] = data;
-                        console.log(`Successfully loaded ${data.length} holidays for ${key}`);
-                        render(); // Update UI immediately when data arrives
+                        state.holidays[key] = await res.json();
+                        render();
                     }
-                } catch (e) {
-                    console.error(`Failed to fetch holidays for ${key}:`, e);
-                }
+                } catch (e) {}
             }
         }
     }

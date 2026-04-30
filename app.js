@@ -8,9 +8,9 @@ let state = {
     baseTimezone: 'Asia/Tokyo',
     duration: 60,
     regions: [
-        { id: '1', name: 'ロンドン', tz: 'Europe/London', country: 'GB' },
-        { id: '2', name: 'ニューヨーク', tz: 'America/New_York', country: 'US' },
-        { id: '3', name: 'ロサンゼルス', tz: 'America/Los_Angeles', country: 'US' }
+        { id: '1', name: 'ロンドン', nameEn: 'London', tz: 'Europe/London', country: 'GB' },
+        { id: '2', name: 'ニューヨーク', nameEn: 'New York', tz: 'America/New_York', country: 'US' },
+        { id: '3', name: 'ロサンゼルス', nameEn: 'Los Angeles', tz: 'America/Los_Angeles', country: 'US' }
     ],
     holidays: {} // Cache: { 'US-2026': [ ... ] }
 };
@@ -84,7 +84,6 @@ const searchResults = document.getElementById('search-results');
 
 // Initial Setup
 function init() {
-    // Default to today
     const now = DateTime.now();
     state.baseDate = now.toISODate();
     state.baseTime = now.toFormat('HH:mm');
@@ -94,8 +93,8 @@ function init() {
     baseTzSelect.value = state.baseTimezone;
 
     addEventListeners();
-    render(); // Render immediately with initial data
-    fetchHolidaysForAll(); // Then fetch holidays in background
+    render(); 
+    fetchHolidaysForAll();
 }
 
 function addEventListeners() {
@@ -188,7 +187,6 @@ function render() {
     const t = translations[state.lang];
     const baseDateTime = DateTime.fromISO(`${state.baseDate}T${state.baseTime}`, { zone: state.baseTimezone });
 
-    // Update Regions List
     regionsList.innerHTML = '';
     state.regions.forEach(region => {
         const regionalTime = baseDateTime.setZone(region.tz);
@@ -216,7 +214,6 @@ function render() {
         regionsList.appendChild(card);
     });
 
-    // Update Chat Preview
     let previewText = `${t.meetingTitle}\n`;
     previewText += `${t.baseTimeText}: ${state.baseDate} ${state.baseTime} (${state.baseTimezone})\n`;
     previewText += '--------------------------------\n';
@@ -248,7 +245,6 @@ function searchRegions(query) {
         return;
     }
     const zones = [
-        // Asia
         { name: '東京', nameEn: 'Tokyo', tz: 'Asia/Tokyo', country: 'JP' },
         { name: 'ソウル', nameEn: 'Seoul', tz: 'Asia/Seoul', country: 'KR' },
         { name: 'シンガポール', nameEn: 'Singapore', tz: 'Asia/Singapore', country: 'SG' },
@@ -262,7 +258,6 @@ function searchRegions(query) {
         { name: 'マニラ', nameEn: 'Manila', tz: 'Asia/Manila', country: 'PH' },
         { name: 'クアラルンプール', nameEn: 'Kuala Lumpur', tz: 'Asia/Kuala_Lumpur', country: 'MY' },
         { name: 'ホーチミン', nameEn: 'Ho Chi Minh', tz: 'Asia/Ho_Chi_Minh', country: 'VN' },
-        // Europe
         { name: 'ロンドン', nameEn: 'London', tz: 'Europe/London', country: 'GB' },
         { name: 'パリ', nameEn: 'Paris', tz: 'Europe/Paris', country: 'FR' },
         { name: 'ベルリン', nameEn: 'Berlin', tz: 'Europe/Berlin', country: 'DE' },
@@ -277,7 +272,6 @@ function searchRegions(query) {
         { name: 'オスロ', nameEn: 'Oslo', tz: 'Europe/Oslo', country: 'NO' },
         { name: 'ヘルシンキ', nameEn: 'Helsinki', tz: 'Europe/Helsinki', country: 'FI' },
         { name: 'コペンハーゲン', nameEn: 'Copenhagen', tz: 'Europe/Copenhagen', country: 'DK' },
-        // North America
         { name: 'ニューヨーク', nameEn: 'New York', tz: 'America/New_York', country: 'US' },
         { name: 'ワシントンDC', nameEn: 'Washington DC', tz: 'America/New_York', country: 'US' },
         { name: 'ロサンゼルス', nameEn: 'Los Angeles', tz: 'America/Los_Angeles', country: 'US' },
@@ -292,12 +286,10 @@ function searchRegions(query) {
         { name: 'トロント', nameEn: 'Toronto', tz: 'America/Toronto', country: 'CA' },
         { name: 'バンクーバー', nameEn: 'Vancouver', tz: 'America/Vancouver', country: 'CA' },
         { name: 'メキシコシティ', nameEn: 'Mexico City', tz: 'America/Mexico_City', country: 'MX' },
-        // Oceania
         { name: 'シドニー', nameEn: 'Sydney', tz: 'Australia/Sydney', country: 'AU' },
         { name: 'メルボルン', nameEn: 'Melbourne', tz: 'Australia/Melbourne', country: 'AU' },
         { name: 'パース', nameEn: 'Perth', tz: 'Australia/Perth', country: 'AU' },
         { name: 'オークランド', nameEn: 'Auckland', tz: 'Pacific/Auckland', country: 'NZ' },
-        // South America
         { name: 'サンパウロ', nameEn: 'Sao Paulo', tz: 'America/Sao_Paulo', country: 'BR' },
         { name: 'サンティアゴ', nameEn: 'Santiago', tz: 'America/Santiago', country: 'CL' },
     ];
@@ -323,7 +315,6 @@ function renderSearchResults(results) {
         div.className = 'search-result-item';
         div.innerHTML = `<strong>${z.name}</strong> <span style="opacity:0.6; font-size:0.8em">(${z.tz})</span>`;
         div.style.cursor = 'pointer';
-        
         div.addEventListener('click', () => {
             addRegion(z);
             regionModal.classList.add('hidden');
@@ -336,41 +327,45 @@ function renderSearchResults(results) {
 
 function addRegion(regionData) {
     const id = Date.now().toString();
-    // Safety check to ensure we have required fields
     if (!regionData || !regionData.tz) return;
-    
-    state.regions.push({ 
-        id, 
-        name: regionData.name, 
-        tz: regionData.tz, 
-        country: regionData.country || 'US' 
-    });
-    
-    render(); // Render immediately
-    fetchHolidaysForAll().catch(err => console.error("Holiday fetch failed but continuing:", err));
+    state.regions.push({ id, ...regionData });
+    render(); 
+    fetchHolidaysForAll().catch(() => {});
+}
+
+async function fetchHolidaysForAll() {
+    const years = new Set();
+    const baseDateTime = DateTime.fromISO(`${state.baseDate}T${state.baseTime}`, { zone: state.baseTimezone });
+    state.regions.forEach(r => years.add(baseDateTime.setZone(r.tz).year));
+
+    for (const region of state.regions) {
+        if (!region.country) continue;
+        for (const year of years) {
+            const key = `${region.country}-${year}`;
+            if (!state.holidays[key]) {
+                try {
+                    const res = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/${region.country}`);
+                    if (res.ok) state.holidays[key] = await res.json();
+                } catch (e) {}
+            }
+        }
+    }
+    render();
 }
 
 async function copyToClipboard() {
-    const text = chatPreview.textContent;
     try {
-        await navigator.clipboard.writeText(text);
+        await navigator.clipboard.writeText(chatPreview.textContent);
         const originalText = copyBtn.innerHTML;
         copyBtn.innerHTML = '<span class="icon">✅</span> ' + translations[state.lang].copied;
-        copyBtn.style.background = 'var(--success)';
-        setTimeout(() => {
-            copyBtn.innerHTML = originalText;
-            copyBtn.style.background = '';
-        }, 2000);
-    } catch (err) {
-        alert('コピーに失敗しました');
-    }
+        setTimeout(() => { copyBtn.innerHTML = originalText; }, 2000);
+    } catch (err) {}
 }
 
 function openCalendar(service) {
     const baseDateTime = DateTime.fromISO(`${state.baseDate}T${state.baseTime}`, { zone: state.baseTimezone });
     const endDateTime = baseDateTime.plus({ minutes: state.duration });
     const t = translations[state.lang];
-
     const fmt = (dt) => dt.toFormat("yyyyMMdd'T'HHmmss'Z'");
     const start = fmt(baseDateTime.toUTC());
     const end = fmt(endDateTime.toUTC());
@@ -383,37 +378,25 @@ function openCalendar(service) {
     } else if (service === 'outlook') {
         url = `https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent&subject=${title}&startdt=${baseDateTime.toISO()}&enddt=${endDateTime.toISO()}&body=${details}`;
     }
-    window.open(url, '_blank');
+    if (url) window.open(url, '_blank');
 }
 
 function downloadICS() {
     const baseDateTime = DateTime.fromISO(`${state.baseDate}T${state.baseTime}`, { zone: state.baseTimezone });
     const endDateTime = baseDateTime.plus({ minutes: state.duration });
     const t = translations[state.lang];
-
     const fmt = (dt) => dt.toFormat("yyyyMMdd'T'HHmmss'Z'");
-    
     const icsContent = [
-        'BEGIN:VCALENDAR',
-        'VERSION:2.0',
-        'PROID:-//Global Meeting Coordinator//JP',
-        'BEGIN:VEVENT',
-        `DTSTART:${fmt(baseDateTime.toUTC())}`,
-        `DTEND:${fmt(endDateTime.toUTC())}`,
-        `SUMMARY:${t.eventTitle}`,
-        `DESCRIPTION:${chatPreview.textContent.replace(/\n/g, '\\n')}`,
-        'END:VEVENT',
-        'END:VCALENDAR'
+        'BEGIN:VCALENDAR', 'VERSION:2.0', 'PROID:-//GMC//JP',
+        'BEGIN:VEVENT', `DTSTART:${fmt(baseDateTime.toUTC())}`, `DTEND:${fmt(endDateTime.toUTC())}`,
+        `SUMMARY:${t.eventTitle}`, `DESCRIPTION:${chatPreview.textContent.replace(/\n/g, '\\n')}`,
+        'END:VEVENT', 'END:VCALENDAR'
     ].join('\n');
-
     const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
     const url = window.URL.createObjectURL(blob);
     const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = 'meeting.ics';
-    anchor.click();
+    anchor.href = url; anchor.download = 'meeting.ics'; anchor.click();
     window.URL.revokeObjectURL(url);
 }
 
-// Start
 init();

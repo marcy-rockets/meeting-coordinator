@@ -249,56 +249,64 @@ function searchRegions(query) {
     }
     const zones = [
         // Asia
-        { name: '東京', tz: 'Asia/Tokyo', country: 'JP' },
-        { name: 'ソウル', tz: 'Asia/Seoul', country: 'KR' },
-        { name: 'シンガポール', tz: 'Asia/Singapore', country: 'SG' },
-        { name: '上海', tz: 'Asia/Shanghai', country: 'CN' },
-        { name: '香港', tz: 'Asia/Hong_Kong', country: 'HK' },
-        { name: 'バンコク', tz: 'Asia/Bangkok', country: 'TH' },
-        { name: '台北', tz: 'Asia/Taipei', country: 'TW' },
-        { name: 'ドバイ', tz: 'Asia/Dubai', country: 'AE' },
-        { name: 'ムンバイ', tz: 'Asia/Kolkata', country: 'IN' },
-        { name: 'ホーチミン', tz: 'Asia/Ho_Chi_Minh', country: 'VN' },
+        { name: '東京', nameEn: 'Tokyo', tz: 'Asia/Tokyo', country: 'JP' },
+        { name: 'ソウル', nameEn: 'Seoul', tz: 'Asia/Seoul', country: 'KR' },
+        { name: 'シンガポール', nameEn: 'Singapore', tz: 'Asia/Singapore', country: 'SG' },
+        { name: '上海', nameEn: 'Shanghai', tz: 'Asia/Shanghai', country: 'CN' },
+        { name: '香港', nameEn: 'Hong Kong', tz: 'Asia/Hong_Kong', country: 'HK' },
+        { name: 'バンコク', nameEn: 'Bangkok', tz: 'Asia/Bangkok', country: 'TH' },
+        { name: '台北', nameEn: 'Taipei', tz: 'Asia/Taipei', country: 'TW' },
+        { name: 'ドバイ', nameEn: 'Dubai', tz: 'Asia/Dubai', country: 'AE' },
+        { name: 'ムンバイ', nameEn: 'Mumbai', tz: 'Asia/Kolkata', country: 'IN' },
+        { name: 'ジャカルタ', nameEn: 'Jakarta', tz: 'Asia/Jakarta', country: 'ID' },
+        { name: 'マニラ', nameEn: 'Manila', tz: 'Asia/Manila', country: 'PH' },
+        { name: 'クアラルンプール', nameEn: 'Kuala Lumpur', tz: 'Asia/Kuala_Lumpur', country: 'MY' },
+        { name: 'ホーチミン', nameEn: 'Ho Chi Minh', tz: 'Asia/Ho_Chi_Minh', country: 'VN' },
         // Europe
-        { name: 'ロンドン', tz: 'Europe/London', country: 'GB' },
-        { name: 'パリ', tz: 'Europe/Paris', country: 'FR' },
-        { name: 'ベルリン', tz: 'Europe/Berlin', country: 'DE' },
-        { name: 'フランクフルト', tz: 'Europe/Berlin', country: 'DE' },
-        { name: 'ミラノ', tz: 'Europe/Rome', country: 'IT' },
-        { name: 'マドリード', tz: 'Europe/Madrid', country: 'ES' },
-        { name: 'アムステルダム', tz: 'Europe/Amsterdam', country: 'NL' },
-        { name: 'チューリッヒ', tz: 'Europe/Zurich', country: 'CH' },
-        { name: 'ブリュッセル', tz: 'Europe/Brussels', country: 'BE' },
+        { name: 'ロンドン', nameEn: 'London', tz: 'Europe/London', country: 'GB' },
+        { name: 'パリ', nameEn: 'Paris', tz: 'Europe/Paris', country: 'FR' },
+        { name: 'ベルリン', nameEn: 'Berlin', tz: 'Europe/Berlin', country: 'DE' },
+        { name: 'フランクフルト', nameEn: 'Frankfurt', tz: 'Europe/Berlin', country: 'DE' },
+        { name: 'ミラノ', nameEn: 'Milan', tz: 'Europe/Rome', country: 'IT' },
+        { name: 'マドリード', nameEn: 'Madrid', tz: 'Europe/Madrid', country: 'ES' },
+        { name: 'アムステルダム', nameEn: 'Amsterdam', tz: 'Europe/Amsterdam', country: 'NL' },
+        { name: 'チューリッヒ', nameEn: 'Zurich', tz: 'Europe/Zurich', country: 'CH' },
+        { name: 'ブリュッセル', nameEn: 'Brussels', tz: 'Europe/Brussels', country: 'BE' },
+        { name: 'ストックホルム', nameEn: 'Stockholm', tz: 'Europe/Stockholm', country: 'SE' },
+        { name: 'ヨーテボリ', nameEn: 'Gothenburg', tz: 'Europe/Stockholm', country: 'SE' },
+        { name: 'オスロ', nameEn: 'Oslo', tz: 'Europe/Oslo', country: 'NO' },
+        { name: 'ヘルシンキ', nameEn: 'Helsinki', tz: 'Europe/Helsinki', country: 'FI' },
+        { name: 'コペンハーゲン', nameEn: 'Copenhagen', tz: 'Europe/Copenhagen', country: 'DK' },
         // North America
-        { name: 'ニューヨーク', tz: 'America/New_York', country: 'US' },
-        { name: 'ワシントンDC', tz: 'America/New_York', country: 'US' },
-        { name: 'ロサンゼルス', tz: 'America/Los_Angeles', country: 'US' },
-        { name: 'サンフランシスコ', tz: 'America/Los_Angeles', country: 'US' },
-        { name: 'シカゴ', tz: 'America/Chicago', country: 'US' },
-        { name: 'ダラス', tz: 'America/Chicago', country: 'US' },
-        { name: 'ヒューストン', tz: 'America/Chicago', country: 'US' },
-        { name: 'シアトル', tz: 'America/Los_Angeles', country: 'US' },
-        { name: 'ボストン', tz: 'America/New_York', country: 'US' },
-        { name: 'トロント', tz: 'America/Toronto', country: 'CA' },
-        { name: 'バンクーバー', tz: 'America/Vancouver', country: 'CA' },
-        { name: 'メキシコシティ', tz: 'America/Mexico_City', country: 'MX' },
+        { name: 'ニューヨーク', nameEn: 'New York', tz: 'America/New_York', country: 'US' },
+        { name: 'ワシントンDC', nameEn: 'Washington DC', tz: 'America/New_York', country: 'US' },
+        { name: 'ロサンゼルス', nameEn: 'Los Angeles', tz: 'America/Los_Angeles', country: 'US' },
+        { name: 'サンフランシスコ', nameEn: 'San Francisco', tz: 'America/Los_Angeles', country: 'US' },
+        { name: 'シカゴ', nameEn: 'Chicago', tz: 'America/Chicago', country: 'US' },
+        { name: 'ダラス', nameEn: 'Dallas', tz: 'America/Chicago', country: 'US' },
+        { name: 'ヒューストン', nameEn: 'Houston', tz: 'America/Chicago', country: 'US' },
+        { name: 'シアトル', nameEn: 'Seattle', tz: 'America/Los_Angeles', country: 'US' },
+        { name: 'デンバー', nameEn: 'Denver', tz: 'America/Denver', country: 'US' },
+        { name: 'フェニックス', nameEn: 'Phoenix', tz: 'America/Phoenix', country: 'US' },
+        { name: 'ボストン', nameEn: 'Boston', tz: 'America/New_York', country: 'US' },
+        { name: 'トロント', nameEn: 'Toronto', tz: 'America/Toronto', country: 'CA' },
+        { name: 'バンクーバー', nameEn: 'Vancouver', tz: 'America/Vancouver', country: 'CA' },
+        { name: 'メキシコシティ', nameEn: 'Mexico City', tz: 'America/Mexico_City', country: 'MX' },
         // Oceania
-        { name: 'シドニー', tz: 'Australia/Sydney', country: 'AU' },
-        { name: 'メルボルン', tz: 'Australia/Melbourne', country: 'AU' },
-        { name: 'オークランド', tz: 'Pacific/Auckland', country: 'NZ' },
+        { name: 'シドニー', nameEn: 'Sydney', tz: 'Australia/Sydney', country: 'AU' },
+        { name: 'メルボルン', nameEn: 'Melbourne', tz: 'Australia/Melbourne', country: 'AU' },
+        { name: 'パース', nameEn: 'Perth', tz: 'Australia/Perth', country: 'AU' },
+        { name: 'オークランド', nameEn: 'Auckland', tz: 'Pacific/Auckland', country: 'NZ' },
+        // South America
+        { name: 'サンパウロ', nameEn: 'Sao Paulo', tz: 'America/Sao_Paulo', country: 'BR' },
+        { name: 'サンティアゴ', nameEn: 'Santiago', tz: 'America/Santiago', country: 'CL' },
     ];
     
     const lowerQuery = query.toLowerCase();
     const results = zones.filter(z => 
         z.name.toLowerCase().includes(lowerQuery) || 
         z.tz.toLowerCase().includes(lowerQuery) ||
-        (z.nameEn && z.nameEn.toLowerCase().includes(lowerQuery)) ||
-        // Support common English names even if not in the list explicitly
-        (query.toLowerCase() === 'dallas' && z.name === 'ダラス') ||
-        (query.toLowerCase() === 'chicago' && z.name === 'シカゴ') ||
-        (query.toLowerCase() === 'london' && z.name === 'ロンドン') ||
-        (query.toLowerCase() === 'paris' && z.name === 'パリ') ||
-        (query.toLowerCase() === 'seoul' && z.name === 'ソウル')
+        (z.nameEn && z.nameEn.toLowerCase().includes(lowerQuery))
     );
     renderSearchResults(results);
 }

@@ -338,7 +338,14 @@ function addRegion(regionData) {
 async function fetchHolidaysForAll() {
     const years = new Set();
     const baseDateTime = DateTime.fromISO(`${state.baseDate}T${state.baseTime}`, { zone: state.baseTimezone });
-    state.regions.forEach(r => years.add(baseDateTime.setZone(r.tz).year));
+    
+    // Check years for each region's local time
+    state.regions.forEach(r => {
+        const regionalTime = baseDateTime.setZone(r.tz);
+        if (regionalTime.isValid) {
+            years.add(regionalTime.year);
+        }
+    });
 
     for (const region of state.regions) {
         if (!region.country) continue;
@@ -346,13 +353,20 @@ async function fetchHolidaysForAll() {
             const key = `${region.country}-${year}`;
             if (!state.holidays[key]) {
                 try {
+                    console.log(`Fetching holidays for ${key}...`);
                     const res = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/${region.country}`);
-                    if (res.ok) state.holidays[key] = await res.json();
-                } catch (e) {}
+                    if (res.ok) {
+                        const data = await res.json();
+                        state.holidays[key] = data;
+                        console.log(`Successfully loaded ${data.length} holidays for ${key}`);
+                        render(); // Update UI immediately when data arrives
+                    }
+                } catch (e) {
+                    console.error(`Failed to fetch holidays for ${key}:`, e);
+                }
             }
         }
     }
-    render();
 }
 
 async function copyToClipboard() {

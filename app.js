@@ -8,10 +8,11 @@ let state = {
     baseTimezone: 'Asia/Tokyo',
     duration: 60,
     regions: [
-        { id: '1', name: 'ロンドン', tz: 'Europe/London' },
-        { id: '2', name: 'ニューヨーク', tz: 'America/New_York' },
-        { id: '3', name: 'ロサンゼルス', tz: 'America/Los_Angeles' }
-    ]
+        { id: '1', name: 'ロンドン', tz: 'Europe/London', country: 'GB' },
+        { id: '2', name: 'ニューヨーク', tz: 'America/New_York', country: 'US' },
+        { id: '3', name: 'ロサンゼルス', tz: 'America/Los_Angeles', country: 'US' }
+    ],
+    holidays: {} // Cache: { 'US-2026': [ ... ] }
 };
 
 const translations = {
@@ -36,7 +37,8 @@ const translations = {
         baseTimeText: '基準時間',
         dayDiffPlus: '+{n}日',
         dayDiffMinus: '-{n}日',
-        eventTitle: 'Global Meeting'
+        eventTitle: 'Global Meeting',
+        holidayLabel: '祝日'
     },
     en: {
         title: 'Global Meeting <span>Coordinator</span>',
@@ -59,7 +61,8 @@ const translations = {
         baseTimeText: 'Base Time',
         dayDiffPlus: '+{n}d',
         dayDiffMinus: '-{n}d',
-        eventTitle: 'Global Meeting'
+        eventTitle: 'Global Meeting',
+        holidayLabel: 'Holiday'
     }
 };
 
@@ -81,21 +84,24 @@ const searchResults = document.getElementById('search-results');
 
 // Initial Setup
 function init() {
-    const now = DateTime.now().setZone(state.baseTimezone);
+    // Default to today
+    const now = DateTime.now();
     state.baseDate = now.toISODate();
     state.baseTime = now.toFormat('HH:mm');
-    
+
     baseDateInput.value = state.baseDate;
     baseTimeInput.value = state.baseTime;
     baseTzSelect.value = state.baseTimezone;
 
+    addEventListeners();
+    fetchHolidaysForAll(); // Initial fetch
     render();
-    setupEventListeners();
 }
 
-function setupEventListeners() {
+function addEventListeners() {
     baseDateInput.addEventListener('change', (e) => {
         state.baseDate = e.target.value;
+        fetchHolidaysForAll();
         render();
     });
     baseTimeInput.addEventListener('change', (e) => {
@@ -178,97 +184,59 @@ function updateStaticText() {
     document.querySelector('.modal-content h3').textContent = t.addRegion.replace(' +', '');
 }
 
-// Logic
-function calculateTimes() {
-    const baseDateTime = DateTime.fromISO(`${state.baseDate}T${state.baseTime}`, { zone: state.baseTimezone });
-    
-    return state.regions.map(region => {
-        const regionalTime = baseDateTime.setZone(region.tz);
-        return {
-            ...region,
-            time: regionalTime.toFormat('HH:mm'),
-            date: regionalTime.toFormat('yyyy/MM/dd'),
-            offsetName: regionalTime.offsetNameShort, // Shows BST, EDT etc.
-            isNextDay: regionalTime.startOf('day') > baseDateTime.setZone(region.tz).startOf('day'),
-            isPrevDay: regionalTime.startOf('day') < baseDateTime.setZone(region.tz).startOf('day'),
-            // Correct logic for day difference relative to base date
-            dayDiff: Math.floor(regionalTime.startOf('day').diff(baseDateTime.setZone(region.tz).startOf('day'), 'days').days)
-        };
-    });
-}
-
 function render() {
-    const calculated = calculateTimes();
-    renderCards(calculated);
-    renderPreview(calculated);
-}
-
-function renderCards(data) {
-    regionsList.innerHTML = '';
     const t = translations[state.lang];
-    data.forEach(region => {
-        const card = document.createElement('div');
-        card.className = 'region-card glass';
-        
-        // Calculate day label
-        let dayLabel = '';
-        const baseDateObj = DateTime.fromISO(state.baseDate);
-        const regionDateObj = DateTime.fromISO(region.date.replace(/\//g, '-'));
-        const diff = Math.round(regionDateObj.diff(baseDateObj, 'days').days);
-        
-        if (diff > 0) dayLabel = `<span class="day-badge plus">${t.dayDiffPlus.replace('{n}', diff)}</span>`;
-        if (diff < 0) dayLabel = `<span class="day-badge minus">${t.dayDiffMinus.replace('{n}', Math.abs(diff))}</span>`;
+    const baseDateTime = DateTime.fromISO(`${state.baseDate}T${state.baseTime}`, { zone: state.baseTimezone });
 
+    // Update Regions List
+    regionsList.innerHTML = '';
+    state.regions.forEach(region => {
+        const regionalTime = baseDateTime.setZone(region.tz);
+        const diff = Math.round(regionalTime.startOf('day').diff(baseDateTime.setZone(state.baseTimezone).setZone(region.tz).startOf('day'), 'days').days);
+        
+        const dateStr = regionalTime.toISODate();
+        const year = regionalTime.year;
+        const holiday = state.holidays[`${region.country}-${year}`]?.find(h => h.date === dateStr);
+
+        const card = document.createElement('div');
+        card.className = 'region-card card glass';
         card.innerHTML = `
             <button class="remove-btn" onclick="removeRegion('${region.id}')">×</button>
             <div class="region-info">
-                <span class="region-name">${state.lang === 'ja' ? region.name : getEnglishName(region.name)}</span>
-                <span class="region-tz">${region.tz} (${region.offsetName})</span>
+                <span class="region-name">${region.name}</span>
+                <span class="region-tz">${region.tz}</span>
             </div>
             <div class="region-time-box">
-                <div class="region-time">${region.time}</div>
-                <div class="region-date">${region.date} ${dayLabel}</div>
+                <span class="region-time">${regionalTime.toFormat('HH:mm')}</span>
+                ${diff !== 0 ? `<span class="day-badge ${diff > 0 ? 'plus' : 'minus'}">${diff > 0 ? t.dayDiffPlus.replace('{n}', diff) : t.dayDiffMinus.replace('{n}', Math.abs(diff))}</span>` : ''}
             </div>
+            <div class="region-date">${regionalTime.toFormat('yyyy/MM/dd')}</div>
+            ${holiday ? `<div class="holiday-badge"><span class="icon">㊗️</span> ${state.lang === 'ja' ? (holiday.localName || holiday.name) : holiday.name}</div>` : ''}
         `;
         regionsList.appendChild(card);
     });
-}
 
-function getEnglishName(jpName) {
-    const names = {
-        'ロンドン': 'London',
-        'ニューヨーク': 'New York',
-        'ロサンゼルス': 'Los Angeles',
-        '東京': 'Tokyo',
-        'シンガポール': 'Singapore',
-        '上海': 'Shanghai',
-        'シドニー': 'Sydney',
-        'パリ': 'Paris',
-        'ベルリン': 'Berlin',
-        'シカゴ': 'Chicago',
-        'サンフランシスコ': 'San Francisco',
-        'バンクーバー': 'Vancouver',
-        'ドバイ': 'Dubai',
-        'ムンバイ': 'Mumbai'
-    };
-    return names[jpName] || jpName;
-}
+    // Update Chat Preview
+    let previewText = `${t.meetingTitle}\n`;
+    previewText += `${t.baseTimeText}: ${state.baseDate} ${state.baseTime} (${state.baseTimezone})\n`;
+    previewText += '--------------------------------\n';
 
-function renderPreview(data) {
-    const t = translations[state.lang];
-    let text = `${t.meetingTitle}\n`;
-    text += `${t.baseTimeText}: ${state.baseDate} ${state.baseTime} (${state.baseTimezone})\n`;
-    text += `--------------------------------\n`;
-    
-    data.forEach(region => {
-        const name = state.lang === 'ja' ? region.name : getEnglishName(region.name);
-        text += `${name.padEnd(12)} : ${region.date} ${region.time} (${region.offsetName})\n`;
+    state.regions.forEach(region => {
+        const regionalTime = baseDateTime.setZone(region.tz);
+        const diff = Math.round(regionalTime.startOf('day').diff(baseDateTime.setZone(state.baseTimezone).setZone(region.tz).startOf('day'), 'days').days);
+        const diffText = diff !== 0 ? ` (${diff > 0 ? t.dayDiffPlus.replace('{n}', diff) : t.dayDiffMinus.replace('{n}', Math.abs(diff))})` : '';
+        
+        const dateStr = regionalTime.toISODate();
+        const year = regionalTime.year;
+        const holiday = state.holidays[`${region.country}-${year}`]?.find(h => h.date === dateStr);
+        const holidayText = holiday ? ` [${state.lang === 'ja' ? (holiday.localName || holiday.name) : holiday.name}]` : '';
+
+        previewText += `${region.name.padEnd(8)}: ${regionalTime.toFormat('yyyy/MM/dd HH:mm')}${diffText}${holidayText}\n`;
     });
     
-    chatPreview.textContent = text;
+    chatPreview.textContent = previewText;
 }
 
-// Actions
 window.removeRegion = function(id) {
     state.regions = state.regions.filter(r => r.id !== id);
     render();
@@ -276,33 +244,68 @@ window.removeRegion = function(id) {
 
 function searchRegions(query) {
     if (!query) {
-        searchResults.innerHTML = '';
+        renderSearchResults([]);
         return;
     }
-    
-    // Simple mock database for demo - In real app, could use a full list of TZs
-    const commonZones = [
-        { name: '東京', tz: 'Asia/Tokyo' },
-        { name: 'シンガポール', tz: 'Asia/Singapore' },
-        { name: '上海', tz: 'Asia/Shanghai' },
-        { name: 'シドニー', tz: 'Australia/Sydney' },
-        { name: 'ロンドン', tz: 'Europe/London' },
-        { name: 'パリ', tz: 'Europe/Paris' },
-        { name: 'ベルリン', tz: 'Europe/Berlin' },
-        { name: 'ニューヨーク', tz: 'America/New_York' },
-        { name: 'シカゴ', tz: 'America/Chicago' },
-        { name: 'サンフランシスコ', tz: 'America/Los_Angeles' },
-        { name: 'バンクーバー', tz: 'America/Vancouver' },
-        { name: 'ドバイ', tz: 'Asia/Dubai' },
-        { name: 'ムンバイ', tz: 'Asia/Kolkata' }
+    const zones = [
+        // Asia
+        { name: '東京', tz: 'Asia/Tokyo', country: 'JP' },
+        { name: 'ソウル', tz: 'Asia/Seoul', country: 'KR' },
+        { name: 'シンガポール', tz: 'Asia/Singapore', country: 'SG' },
+        { name: '上海', tz: 'Asia/Shanghai', country: 'CN' },
+        { name: '香港', tz: 'Asia/Hong_Kong', country: 'HK' },
+        { name: 'バンコク', tz: 'Asia/Bangkok', country: 'TH' },
+        { name: '台北', tz: 'Asia/Taipei', country: 'TW' },
+        { name: 'ドバイ', tz: 'Asia/Dubai', country: 'AE' },
+        { name: 'ムンバイ', tz: 'Asia/Kolkata', country: 'IN' },
+        { name: 'ホーチミン', tz: 'Asia/Ho_Chi_Minh', country: 'VN' },
+        // Europe
+        { name: 'ロンドン', tz: 'Europe/London', country: 'GB' },
+        { name: 'パリ', tz: 'Europe/Paris', country: 'FR' },
+        { name: 'ベルリン', tz: 'Europe/Berlin', country: 'DE' },
+        { name: 'フランクフルト', tz: 'Europe/Berlin', country: 'DE' },
+        { name: 'ミラノ', tz: 'Europe/Rome', country: 'IT' },
+        { name: 'マドリード', tz: 'Europe/Madrid', country: 'ES' },
+        { name: 'アムステルダム', tz: 'Europe/Amsterdam', country: 'NL' },
+        { name: 'チューリッヒ', tz: 'Europe/Zurich', country: 'CH' },
+        { name: 'ブリュッセル', tz: 'Europe/Brussels', country: 'BE' },
+        // North America
+        { name: 'ニューヨーク', tz: 'America/New_York', country: 'US' },
+        { name: 'ワシントンDC', tz: 'America/New_York', country: 'US' },
+        { name: 'ロサンゼルス', tz: 'America/Los_Angeles', country: 'US' },
+        { name: 'サンフランシスコ', tz: 'America/Los_Angeles', country: 'US' },
+        { name: 'シカゴ', tz: 'America/Chicago', country: 'US' },
+        { name: 'ダラス', tz: 'America/Chicago', country: 'US' },
+        { name: 'ヒューストン', tz: 'America/Chicago', country: 'US' },
+        { name: 'シアトル', tz: 'America/Los_Angeles', country: 'US' },
+        { name: 'ボストン', tz: 'America/New_York', country: 'US' },
+        { name: 'トロント', tz: 'America/Toronto', country: 'CA' },
+        { name: 'バンクーバー', tz: 'America/Vancouver', country: 'CA' },
+        { name: 'メキシコシティ', tz: 'America/Mexico_City', country: 'MX' },
+        // Oceania
+        { name: 'シドニー', tz: 'Australia/Sydney', country: 'AU' },
+        { name: 'メルボルン', tz: 'Australia/Melbourne', country: 'AU' },
+        { name: 'オークランド', tz: 'Pacific/Auckland', country: 'NZ' },
     ];
-
-    const filtered = commonZones.filter(z => 
-        z.name.includes(query) || z.tz.toLowerCase().includes(query.toLowerCase())
+    
+    const lowerQuery = query.toLowerCase();
+    const results = zones.filter(z => 
+        z.name.toLowerCase().includes(lowerQuery) || 
+        z.tz.toLowerCase().includes(lowerQuery) ||
+        (z.nameEn && z.nameEn.toLowerCase().includes(lowerQuery)) ||
+        // Support common English names even if not in the list explicitly
+        (query.toLowerCase() === 'dallas' && z.name === 'ダラス') ||
+        (query.toLowerCase() === 'chicago' && z.name === 'シカゴ') ||
+        (query.toLowerCase() === 'london' && z.name === 'ロンドン') ||
+        (query.toLowerCase() === 'paris' && z.name === 'パリ') ||
+        (query.toLowerCase() === 'seoul' && z.name === 'ソウル')
     );
+    renderSearchResults(results);
+}
 
+function renderSearchResults(results) {
     searchResults.innerHTML = '';
-    filtered.forEach(z => {
+    results.forEach(z => {
         const div = document.createElement('div');
         div.className = 'search-result-item';
         div.textContent = `${z.name} (${z.tz})`;

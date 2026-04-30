@@ -93,6 +93,7 @@ function init() {
     baseTzSelect.value = state.baseTimezone;
 
     addEventListeners();
+    updateStaticText(); // Apply translations (including dropdown)
     render(); 
     fetchHolidaysForAll();
 }

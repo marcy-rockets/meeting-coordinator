@@ -85,8 +85,12 @@ const searchResults = document.getElementById('search-results');
 // Initial Setup
 function init() {
     const now = DateTime.now();
-    state.baseDate = now.toISODate();
-    state.baseTime = now.toFormat('HH:mm');
+    // Round to nearest 15 minutes
+    const roundedMinutes = Math.round(now.minute / 15) * 15;
+    const roundedNow = now.set({ minute: 0, second: 0, millisecond: 0 }).plus({ minutes: roundedMinutes });
+    
+    state.baseDate = roundedNow.toISODate();
+    state.baseTime = roundedNow.toFormat('HH:mm');
 
     baseDateInput.value = state.baseDate;
     baseTimeInput.value = state.baseTime;

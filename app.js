@@ -420,7 +420,17 @@ function addRegion(regionData) {
     fetchHolidaysForAll().catch(() => {});
 }
 
+// API Configuration
+// For security, we recommend setting this via browser console: localStorage.setItem('CALENDARIFIC_API_KEY', 'your_key')
+// or use a proxy in the CONNECT version.
+let CALENDARIFIC_API_KEY = localStorage.getItem('CALENDARIFIC_API_KEY') || 'xUrfLxBMzw3EExxN37OAJdxhBfib5xbj'; 
+
 async function fetchHolidaysForAll() {
+    if (!CALENDARIFIC_API_KEY || CALENDARIFIC_API_KEY.includes('YOUR_KEY')) {
+        console.warn("Calendarific API Key is missing. Set it with: localStorage.setItem('CALENDARIFIC_API_KEY', 'your_key')");
+        return;
+    }
+
     const years = new Set();
     const baseDateTime = DateTime.fromISO(`${state.baseDate}T${state.baseTime}`, { zone: state.baseTimezone });
     if (!baseDateTime.isValid) return;
@@ -432,6 +442,31 @@ async function fetchHolidaysForAll() {
         if (regionalTime.isValid) years.add(regionalTime.year);
         if (regionalEndTime.isValid) years.add(regionalEndTime.year);
     });
+
+    // Check cache first
+    let needsFetch = false;
+    for (const region of state.regions) {
+        if (!region.country) continue;
+        for (const year of years) {
+            const key = `${region.country}-${year}`;
+            if (!state.holidays[key]) {
+                const cached = localStorage.getItem(`holidays_${key}`);
+                if (cached) {
+                    const { data, expiry } = JSON.parse(cached);
+                    if (Date.now() < expiry) {
+                        state.holidays[key] = data;
+                        continue;
+                    }
+                }
+                needsFetch = true;
+            }
+        }
+    }
+
+    if (!needsFetch) {
+        render();
+        return;
+    }
 
     state.fetchingHolidays = true;
     render();
@@ -445,12 +480,26 @@ async function fetchHolidaysForAll() {
             if (!state.holidays[key]) {
                 const fetchPromise = (async () => {
                     try {
-                        const res = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/${region.country}`);
+                        const url = `https://calendarific.com/api/v2/holidays?api_key=${CALENDARIFIC_API_KEY}&country=${region.country}&year=${year}`;
+                        const res = await fetch(url);
                         if (res.ok) {
-                            state.holidays[key] = await res.json();
+                            const data = await res.json();
+                            if (data.response && data.response.holidays) {
+                                const mappedData = data.response.holidays.map(h => ({
+                                    date: h.date.iso.split('T')[0],
+                                    name: h.name,
+                                    localName: h.name
+                                }));
+                                state.holidays[key] = mappedData;
+                                // Cache for 30 days
+                                localStorage.setItem(`holidays_${key}`, JSON.stringify({
+                                    data: mappedData,
+                                    expiry: Date.now() + (30 * 24 * 60 * 60 * 1000)
+                                }));
+                            }
                         }
                     } catch (e) {
-                        console.error("Holiday fetch error:", e);
+                        console.error("Calendarific fetch error:", e);
                     }
                 })();
                 fetchPromises.push(fetchPromise);

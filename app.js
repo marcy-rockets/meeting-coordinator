@@ -198,10 +198,11 @@ function render() {
 
         const card = document.createElement('div');
         card.className = 'region-card card glass';
+        const displayName = state.lang === 'en' ? (region.nameEn || region.name) : region.name;
         card.innerHTML = `
             <button class="remove-btn" onclick="removeRegion('${region.id}')">×</button>
             <div class="region-info">
-                <span class="region-name">${region.name}</span>
+                <span class="region-name">${displayName}</span>
                 <span class="region-tz">${region.tz}</span>
             </div>
             <div class="region-time-box">
@@ -228,7 +229,8 @@ function render() {
         const holiday = state.holidays[`${region.country}-${year}`]?.find(h => h.date === dateStr);
         const holidayText = holiday ? ` [${state.lang === 'ja' ? (holiday.localName || holiday.name) : holiday.name}]` : '';
 
-        previewText += `${region.name.padEnd(8)}: ${regionalTime.toFormat('yyyy/MM/dd HH:mm')}${diffText}${holidayText}\n`;
+        const displayName = state.lang === 'en' ? (region.nameEn || region.name) : region.name;
+        previewText += `${displayName.padEnd(12)}: ${regionalTime.toFormat('yyyy/MM/dd HH:mm')}${diffText}${holidayText}\n`;
     });
     
     chatPreview.textContent = previewText;

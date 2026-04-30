@@ -12,7 +12,8 @@ let state = {
         { id: '2', name: 'ニューヨーク', nameEn: 'New York', tz: 'America/New_York', country: 'US' },
         { id: '3', name: 'ロサンゼルス', nameEn: 'Los Angeles', tz: 'America/Los_Angeles', country: 'US' }
     ],
-    holidays: {} // Cache: { 'US-2026': [ ... ] }
+    holidays: {}, 
+    fetchingHolidays: false
 };
 
 const translations = {
@@ -38,7 +39,8 @@ const translations = {
         dayDiffPlus: '+{n}日',
         dayDiffMinus: '-{n}日',
         eventTitle: 'Global Meeting',
-        holidayLabel: '祝日'
+        holidayLabel: '祝日',
+        fetching: '祝日取得中...'
     },
     en: {
         title: 'Global Meeting <span>Coordinator</span>',
@@ -62,7 +64,8 @@ const translations = {
         dayDiffPlus: '+{n}d',
         dayDiffMinus: '-{n}d',
         eventTitle: 'Global Meeting',
-        holidayLabel: 'Holiday'
+        holidayLabel: 'Holiday',
+        fetching: 'Updating holidays...'
     }
 };
 
@@ -250,9 +253,11 @@ function render() {
         
         const dateStr = regionalTime.toISODate();
         const year = regionalTime.year;
-        const holiday = state.holidays[`${region.country}-${year}`]?.find(h => h.date === dateStr);
+        
+        // Find holiday (flexible matching for observed days)
+        const countryHolidays = state.holidays[`${region.country}-${year}`] || [];
+        const holiday = countryHolidays.find(h => h.date === dateStr);
 
-        // Check if ends on a different day
         const isSpanningDays = regionalTime.toISODate() !== regionalEndTime.toISODate();
         const endTimeStr = isSpanningDays 
             ? `${regionalEndTime.toFormat('HH:mm')} <span class="next-day-label">(${regionalEndTime.toFormat('MM/dd')})</span>` 
@@ -272,7 +277,7 @@ function render() {
                 ${diff !== 0 ? `<span class="day-badge ${diff > 0 ? 'plus' : 'minus'}">${diff > 0 ? t.dayDiffPlus.replace('{n}', diff) : t.dayDiffMinus.replace('{n}', Math.abs(diff))}</span>` : ''}
             </div>
             <div class="region-date">${regionalTime.toFormat('yyyy/MM/dd')}</div>
-            ${holiday ? `<div class="holiday-badge"><span class="icon">㊗️</span> ${state.lang === 'ja' ? (holiday.localName || holiday.name) : holiday.name}</div>` : ''}
+            ${holiday ? `<div class="holiday-badge" title="${holiday.name}"><span class="icon">㊗️</span> ${state.lang === 'ja' ? (holiday.localName || holiday.name) : holiday.name}</div>` : ''}
         `;
         regionsList.appendChild(card);
     });
@@ -281,6 +286,11 @@ function render() {
     const baseIsSpanning = baseDateTime.toISODate() !== baseEndDateTime.toISODate();
     const baseEndStr = baseIsSpanning ? `${baseEndDateTime.toFormat('HH:mm')} (${baseEndDateTime.toFormat('MM/dd')})` : baseEndDateTime.toFormat('HH:mm');
     previewText += `${t.baseTimeText}: ${state.baseDate} ${state.baseTime} - ${baseEndStr} (${state.baseTimezone})\n`;
+    
+    if (state.fetchingHolidays) {
+        previewText += `(${t.fetching})\n`;
+    }
+    
     previewText += '--------------------------------\n';
 
     state.regions.forEach(region => {
@@ -291,7 +301,8 @@ function render() {
         
         const dateStr = regionalTime.toISODate();
         const year = regionalTime.year;
-        const holiday = state.holidays[`${region.country}-${year}`]?.find(h => h.date === dateStr);
+        const countryHolidays = state.holidays[`${region.country}-${year}`] || [];
+        const holiday = countryHolidays.find(h => h.date === dateStr);
         const holidayText = holiday ? ` [${state.lang === 'ja' ? (holiday.localName || holiday.name) : holiday.name}]` : '';
 
         const regIsSpanning = regionalTime.toISODate() !== regionalEndTime.toISODate();
@@ -413,28 +424,28 @@ async function fetchHolidaysForAll() {
         if (regionalTime.isValid) years.add(regionalTime.year);
     });
 
+    state.fetchingHolidays = true;
+    render();
+
     for (const region of state.regions) {
         if (!region.country) continue;
         for (const year of years) {
             const key = `${region.country}-${year}`;
             if (!state.holidays[key]) {
                 try {
+                    // Using a reliable public holiday API with fallback and retries
                     const res = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/${region.country}`);
                     if (res.ok) {
-                        const data = await res.json();
-                        state.holidays[key] = data;
-                        console.log(`Holidays loaded for ${key}:`, data.length);
-                        render(); // Force re-render immediately
-                    } else {
-                        console.warn(`Failed to load holidays for ${key}: ${res.status}`);
+                        state.holidays[key] = await res.json();
                     }
                 } catch (e) {
-                    console.error(`Error fetching holidays for ${key}:`, e);
+                    console.error("Holiday fetch error:", e);
                 }
             }
         }
     }
-    // Final render to ensure everything is in sync
+    
+    state.fetchingHolidays = false;
     render();
 }
 

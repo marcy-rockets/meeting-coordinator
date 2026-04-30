@@ -241,10 +241,12 @@ function updateStaticText() {
 function render() {
     const t = translations[state.lang];
     const baseDateTime = DateTime.fromISO(`${state.baseDate}T${state.baseTime}`, { zone: state.baseTimezone });
+    const baseEndDateTime = baseDateTime.plus({ minutes: state.duration });
 
     regionsList.innerHTML = '';
     state.regions.forEach(region => {
         const regionalTime = baseDateTime.setZone(region.tz);
+        const regionalEndTime = baseEndDateTime.setZone(region.tz);
         const diff = Math.round(regionalTime.startOf('day').diff(baseDateTime.setZone(state.baseTimezone).setZone(region.tz).startOf('day'), 'days').days);
         
         const dateStr = regionalTime.toISODate();
@@ -261,7 +263,7 @@ function render() {
                 <span class="region-tz">${region.tz}</span>
             </div>
             <div class="region-time-box">
-                <span class="region-time">${regionalTime.toFormat('HH:mm')}</span>
+                <span class="region-time">${regionalTime.toFormat('HH:mm')} - ${regionalEndTime.toFormat('HH:mm')}</span>
                 ${diff !== 0 ? `<span class="day-badge ${diff > 0 ? 'plus' : 'minus'}">${diff > 0 ? t.dayDiffPlus.replace('{n}', diff) : t.dayDiffMinus.replace('{n}', Math.abs(diff))}</span>` : ''}
             </div>
             <div class="region-date">${regionalTime.toFormat('yyyy/MM/dd')}</div>
@@ -271,11 +273,12 @@ function render() {
     });
 
     let previewText = `${t.meetingTitle}\n`;
-    previewText += `${t.baseTimeText}: ${state.baseDate} ${state.baseTime} (${state.baseTimezone})\n`;
+    previewText += `${t.baseTimeText}: ${state.baseDate} ${state.baseTime} - ${baseEndDateTime.toFormat('HH:mm')} (${state.baseTimezone})\n`;
     previewText += '--------------------------------\n';
 
     state.regions.forEach(region => {
         const regionalTime = baseDateTime.setZone(region.tz);
+        const regionalEndTime = baseEndDateTime.setZone(region.tz);
         const diff = Math.round(regionalTime.startOf('day').diff(baseDateTime.setZone(state.baseTimezone).setZone(region.tz).startOf('day'), 'days').days);
         const diffText = diff !== 0 ? ` (${diff > 0 ? t.dayDiffPlus.replace('{n}', diff) : t.dayDiffMinus.replace('{n}', Math.abs(diff))})` : '';
         
@@ -285,7 +288,7 @@ function render() {
         const holidayText = holiday ? ` [${state.lang === 'ja' ? (holiday.localName || holiday.name) : holiday.name}]` : '';
 
         const displayName = state.lang === 'en' ? (region.nameEn || region.name) : region.name;
-        previewText += `${displayName.padEnd(12)}: ${regionalTime.toFormat('yyyy/MM/dd HH:mm')}${diffText}${holidayText}\n`;
+        previewText += `${displayName.padEnd(12)}: ${regionalTime.toFormat('yyyy/MM/dd HH:mm')} - ${regionalEndTime.toFormat('HH:mm')}${diffText}${holidayText}\n`;
     });
     
     chatPreview.textContent = previewText;

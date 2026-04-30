@@ -94,8 +94,8 @@ function init() {
     baseTzSelect.value = state.baseTimezone;
 
     addEventListeners();
-    fetchHolidaysForAll(); // Initial fetch
-    render();
+    render(); // Render immediately with initial data
+    fetchHolidaysForAll(); // Then fetch holidays in background
 }
 
 function addEventListeners() {
@@ -310,7 +310,7 @@ function renderSearchResults(results) {
         div.className = 'search-result-item';
         div.textContent = `${z.name} (${z.tz})`;
         div.onclick = () => {
-            addRegion(z.name, z.tz);
+            addRegion(z);
             regionModal.classList.add('hidden');
             regionSearchInput.value = '';
             searchResults.innerHTML = '';
@@ -319,9 +319,10 @@ function renderSearchResults(results) {
     });
 }
 
-function addRegion(name, tz) {
+function addRegion(region) {
     const id = Date.now().toString();
-    state.regions.push({ id, name, tz });
+    state.regions.push({ id, ...region });
+    fetchHolidaysForAll(); // Fetch for new region
     render();
 }
 

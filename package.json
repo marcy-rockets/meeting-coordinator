@@ -1,0 +1,11 @@
+{
+  "name": "global-meeting-coordinator",
+  "version": "1.0.0",
+  "description": "Global meeting time coordinator with timezone and DST support.",
+  "scripts": {
+    "start": "npx serve ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

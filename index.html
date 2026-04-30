@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Meeting Coordinator | 世界会議時間調整</title>
+    <meta name="description" content="海外との会議設定時に時差やサマータイムを考慮して時間を調整・リストアップするWebアプリ">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- Luxon for Timezone handling -->
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
+</head>
+<body>
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <main class="app-container">
+        <div class="top-nav">
+            <div class="lang-switcher glass">
+                <button id="lang-ja" class="lang-btn active">JP</button>
+                <button id="lang-en" class="lang-btn">EN</button>
+            </div>
+        </div>
+        <header class="app-header">
+            <h1>Global Meeting <span>Coordinator</span></h1>
+            <p>時差・サマータイムを考慮した会議時間の調整と共有</p>
+        </header>
+
+        <section class="config-section card glass">
+            <div class="input-group">
+                <label for="base-date">日付</label>
+                <input type="date" id="base-date" class="styled-input">
+            </div>
+            <div class="input-group">
+                <label for="base-time">開始時間</label>
+                <input type="time" id="base-time" class="styled-input">
+            </div>
+            <div class="input-group">
+                <label for="base-timezone">基準タイムゾーン</label>
+                <select id="base-timezone" class="styled-input">
+                    <option value="Asia/Tokyo">日本 (JST)</option>
+                    <option value="America/New_York">ニューヨーク (EST/EDT)</option>
+                    <option value="Europe/London">ロンドン (GMT/BST)</option>
+                    <option value="Europe/Paris">パリ (CET/CEST)</option>
+                    <option value="America/Los_Angeles">ロサンゼルス (PST/PDT)</option>
+                    <option value="Australia/Sydney">シドニー (AEST/AEDT)</option>
+                    <option value="Asia/Singapore">シンガポール (SGT)</option>
+                </select>
+            </div>
+        </section>
+
+        <section class="regions-section">
+            <div class="section-header">
+                <h2>参加地域</h2>
+                <button id="add-region-btn" class="btn-secondary">地域を追加 +</button>
+            </div>
+            <div id="regions-list" class="regions-grid">
+                <!-- Region cards will be injected here -->
+            </div>
+        </section>
+
+        <section class="copy-section card glass">
+            <div class="section-header">
+                <h2>Chat用テキスト出力</h2>
+                <button id="copy-btn" class="btn-primary">
+                    <span class="icon">📋</span> コピーする
+                </button>
+            </div>
+            <div class="preview-area">
+                <pre id="chat-preview">地域を追加して時間を調整してください...</pre>
+            </div>
+        </section>
+    </main>
+
+    <!-- Region Picker Modal (Optional or inline) -->
+    <div id="region-modal" class="modal glass hidden">
+        <div class="modal-content">
+            <h3>地域を追加</h3>
+            <div class="search-box">
+                <input type="text" id="region-search" placeholder="都市名や国名で検索...">
+            </div>
+            <div id="search-results" class="results-list">
+                <!-- Search results -->
+            </div>
+            <button id="close-modal" class="btn-text">キャンセル</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

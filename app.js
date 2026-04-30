@@ -181,6 +181,38 @@ function updateStaticText() {
     regionSearchInput.placeholder = t.searchPlaceholder;
     closeModalBtn.textContent = t.cancel;
     document.querySelector('.modal-content h3').textContent = t.addRegion.replace(' +', '');
+
+    // Update Base Timezone Dropdown Options
+    const tzOptions = {
+        'ja': [
+            { v: 'Asia/Tokyo', t: '日本 (JST)' },
+            { v: 'America/New_York', t: 'ニューヨーク (EST/EDT)' },
+            { v: 'Europe/London', t: 'ロンドン (GMT/BST)' },
+            { v: 'Europe/Paris', t: 'パリ (CET/CEST)' },
+            { v: 'America/Los_Angeles', t: 'ロサンゼルス (PST/PDT)' },
+            { v: 'Australia/Sydney', t: 'シドニー (AEST/AEDT)' },
+            { v: 'Asia/Singapore', t: 'シンガポール (SGT)' }
+        ],
+        'en': [
+            { v: 'Asia/Tokyo', t: 'Japan (JST)' },
+            { v: 'America/New_York', t: 'New York (EST/EDT)' },
+            { v: 'Europe/London', t: 'London (GMT/BST)' },
+            { v: 'Europe/Paris', t: 'Paris (CET/CEST)' },
+            { v: 'America/Los_Angeles', t: 'Los Angeles (PST/PDT)' },
+            { v: 'Australia/Sydney', t: 'Sydney (AEST/AEDT)' },
+            { v: 'Asia/Singapore', t: 'Singapore (SGT)' }
+        ]
+    };
+
+    const currentValue = baseTzSelect.value;
+    baseTzSelect.innerHTML = '';
+    tzOptions[state.lang].forEach(opt => {
+        const o = document.createElement('option');
+        o.value = opt.v;
+        o.textContent = opt.t;
+        baseTzSelect.appendChild(o);
+    });
+    baseTzSelect.value = currentValue;
 }
 
 function render() {

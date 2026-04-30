@@ -252,6 +252,12 @@ function render() {
         const year = regionalTime.year;
         const holiday = state.holidays[`${region.country}-${year}`]?.find(h => h.date === dateStr);
 
+        // Check if ends on a different day
+        const isSpanningDays = regionalTime.toISODate() !== regionalEndTime.toISODate();
+        const endTimeStr = isSpanningDays 
+            ? `${regionalEndTime.toFormat('HH:mm')} <span class="next-day-label">(${regionalEndTime.toFormat('MM/dd')})</span>` 
+            : regionalEndTime.toFormat('HH:mm');
+
         const card = document.createElement('div');
         card.className = 'region-card card glass';
         const displayName = state.lang === 'en' ? (region.nameEn || region.name) : region.name;
@@ -262,7 +268,7 @@ function render() {
                 <span class="region-tz">${region.tz}</span>
             </div>
             <div class="region-time-box">
-                <span class="region-time">${regionalTime.toFormat('HH:mm')} - ${regionalEndTime.toFormat('HH:mm')}</span>
+                <span class="region-time">${regionalTime.toFormat('HH:mm')} - ${endTimeStr}</span>
                 ${diff !== 0 ? `<span class="day-badge ${diff > 0 ? 'plus' : 'minus'}">${diff > 0 ? t.dayDiffPlus.replace('{n}', diff) : t.dayDiffMinus.replace('{n}', Math.abs(diff))}</span>` : ''}
             </div>
             <div class="region-date">${regionalTime.toFormat('yyyy/MM/dd')}</div>
@@ -272,7 +278,9 @@ function render() {
     });
 
     let previewText = `${t.meetingTitle}\n`;
-    previewText += `${t.baseTimeText}: ${state.baseDate} ${state.baseTime} - ${baseEndDateTime.toFormat('HH:mm')} (${state.baseTimezone})\n`;
+    const baseIsSpanning = baseDateTime.toISODate() !== baseEndDateTime.toISODate();
+    const baseEndStr = baseIsSpanning ? `${baseEndDateTime.toFormat('HH:mm')} (${baseEndDateTime.toFormat('MM/dd')})` : baseEndDateTime.toFormat('HH:mm');
+    previewText += `${t.baseTimeText}: ${state.baseDate} ${state.baseTime} - ${baseEndStr} (${state.baseTimezone})\n`;
     previewText += '--------------------------------\n';
 
     state.regions.forEach(region => {
@@ -286,8 +294,11 @@ function render() {
         const holiday = state.holidays[`${region.country}-${year}`]?.find(h => h.date === dateStr);
         const holidayText = holiday ? ` [${state.lang === 'ja' ? (holiday.localName || holiday.name) : holiday.name}]` : '';
 
+        const regIsSpanning = regionalTime.toISODate() !== regionalEndTime.toISODate();
+        const regEndStr = regIsSpanning ? `${regionalEndTime.toFormat('HH:mm')} (${regionalEndTime.toFormat('MM/dd')})` : regionalEndTime.toFormat('HH:mm');
+
         const displayName = state.lang === 'en' ? (region.nameEn || region.name) : region.name;
-        previewText += `${displayName.padEnd(12)}: ${regionalTime.toFormat('yyyy/MM/dd HH:mm')} - ${regionalEndTime.toFormat('HH:mm')}${diffText}${holidayText}\n`;
+        previewText += `${displayName.padEnd(12)}: ${regionalTime.toFormat('yyyy/MM/dd HH:mm')} - ${regEndStr}${diffText}${holidayText}\n`;
     });
     
     chatPreview.textContent = previewText;
@@ -410,13 +421,21 @@ async function fetchHolidaysForAll() {
                 try {
                     const res = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/${region.country}`);
                     if (res.ok) {
-                        state.holidays[key] = await res.json();
-                        render();
+                        const data = await res.json();
+                        state.holidays[key] = data;
+                        console.log(`Holidays loaded for ${key}:`, data.length);
+                        render(); // Force re-render immediately
+                    } else {
+                        console.warn(`Failed to load holidays for ${key}: ${res.status}`);
                     }
-                } catch (e) {}
+                } catch (e) {
+                    console.error(`Error fetching holidays for ${key}:`, e);
+                }
             }
         }
     }
+    // Final render to ensure everything is in sync
+    render();
 }
 
 async function copyToClipboard() {

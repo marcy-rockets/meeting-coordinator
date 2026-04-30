@@ -53,6 +53,10 @@
                     <option value="Asia/Singapore">シンガポール (SGT)</option>
                 </select>
             </div>
+            <div class="input-group">
+                <label for="duration">期間 (分)</label>
+                <input type="number" id="duration" class="styled-input" value="60" min="15" step="15">
+            </div>
         </section>
 
         <section class="regions-section">
@@ -68,9 +72,21 @@
         <section class="copy-section card glass">
             <div class="section-header">
                 <h2>Chat用テキスト出力</h2>
-                <button id="copy-btn" class="btn-primary">
-                    <span class="icon">📋</span> コピーする
-                </button>
+                <div class="button-group">
+                    <div class="dropdown">
+                        <button id="calendar-btn" class="btn-secondary">
+                            <span class="icon">📅</span> カレンダーに追加
+                        </button>
+                        <div id="calendar-menu" class="dropdown-content glass hidden">
+                            <a href="#" id="cal-google">Google Calendar</a>
+                            <a href="#" id="cal-outlook">Outlook</a>
+                            <a href="#" id="cal-ics">iCal / Apple (.ics)</a>
+                        </div>
+                    </div>
+                    <button id="copy-btn" class="btn-primary">
+                        <span class="icon">📋</span> コピーする
+                    </button>
+                </div>
             </div>
             <div class="preview-area">
                 <pre id="chat-preview">地域を追加して時間を調整してください...</pre>

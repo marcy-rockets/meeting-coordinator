@@ -6,6 +6,7 @@ let state = {
     baseDate: '',
     baseTime: '',
     baseTimezone: 'Asia/Tokyo',
+    duration: 60,
     regions: [
         { id: '1', name: 'ロンドン', tz: 'Europe/London' },
         { id: '2', name: 'ニューヨーク', tz: 'America/New_York' },
@@ -20,9 +21,11 @@ const translations = {
         dateLabel: '日付',
         timeLabel: '開始時間',
         baseTzLabel: '基準タイムゾーン',
+        durationLabel: '期間 (分)',
         participatingRegions: '参加地域',
         addRegion: '地域を追加 +',
         chatOutput: 'Chat用テキスト出力',
+        addToCalendar: 'カレンダーに追加',
         copy: 'コピーする',
         copied: 'コピー完了！',
         placeholder: '地域を追加して時間を調整してください...',
@@ -32,7 +35,8 @@ const translations = {
         meetingTitle: '【会議時間設定】',
         baseTimeText: '基準時間',
         dayDiffPlus: '+{n}日',
-        dayDiffMinus: '-{n}日'
+        dayDiffMinus: '-{n}日',
+        eventTitle: 'Global Meeting'
     },
     en: {
         title: 'Global Meeting <span>Coordinator</span>',
@@ -40,9 +44,11 @@ const translations = {
         dateLabel: 'Date',
         timeLabel: 'Start Time',
         baseTzLabel: 'Base Timezone',
+        durationLabel: 'Duration (min)',
         participatingRegions: 'Participants',
         addRegion: 'Add Region +',
         chatOutput: 'Chat Export',
+        addToCalendar: 'Add to Calendar',
         copy: 'Copy Text',
         copied: 'Copied!',
         placeholder: 'Add regions to start coordinating...',
@@ -52,7 +58,8 @@ const translations = {
         meetingTitle: '[Meeting Schedule]',
         baseTimeText: 'Base Time',
         dayDiffPlus: '+{n}d',
-        dayDiffMinus: '-{n}d'
+        dayDiffMinus: '-{n}d',
+        eventTitle: 'Global Meeting'
     }
 };
 
@@ -60,10 +67,13 @@ const translations = {
 const baseDateInput = document.getElementById('base-date');
 const baseTimeInput = document.getElementById('base-time');
 const baseTzSelect = document.getElementById('base-timezone');
+const durationInput = document.getElementById('duration');
 const regionsList = document.getElementById('regions-list');
 const chatPreview = document.getElementById('chat-preview');
 const addRegionBtn = document.getElementById('add-region-btn');
 const copyBtn = document.getElementById('copy-btn');
+const calendarBtn = document.getElementById('calendar-btn');
+const calendarMenu = document.getElementById('calendar-menu');
 const regionModal = document.getElementById('region-modal');
 const closeModalBtn = document.getElementById('close-modal');
 const regionSearchInput = document.getElementById('region-search');
@@ -96,6 +106,10 @@ function setupEventListeners() {
         state.baseTimezone = e.target.value;
         render();
     });
+    durationInput.addEventListener('change', (e) => {
+        state.duration = parseInt(e.target.value);
+        render();
+    });
 
     addRegionBtn.addEventListener('click', () => {
         regionModal.classList.remove('hidden');
@@ -111,6 +125,28 @@ function setupEventListeners() {
     });
 
     copyBtn.addEventListener('click', copyToClipboard);
+
+    calendarBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        calendarMenu.classList.toggle('hidden');
+    });
+
+    document.addEventListener('click', () => {
+        calendarMenu.classList.add('hidden');
+    });
+
+    document.getElementById('cal-google').addEventListener('click', (e) => {
+        e.preventDefault();
+        openCalendar('google');
+    });
+    document.getElementById('cal-outlook').addEventListener('click', (e) => {
+        e.preventDefault();
+        openCalendar('outlook');
+    });
+    document.getElementById('cal-ics').addEventListener('click', (e) => {
+        e.preventDefault();
+        downloadICS();
+    });
 
     document.getElementById('lang-ja').addEventListener('click', () => switchLanguage('ja'));
     document.getElementById('lang-en').addEventListener('click', () => switchLanguage('en'));
@@ -131,9 +167,11 @@ function updateStaticText() {
     document.querySelector('label[for="base-date"]').textContent = t.dateLabel;
     document.querySelector('label[for="base-time"]').textContent = t.timeLabel;
     document.querySelector('label[for="base-timezone"]').textContent = t.baseTzLabel;
+    document.querySelector('label[for="duration"]').textContent = t.durationLabel;
     document.querySelector('.section-header h2').textContent = t.participatingRegions;
     addRegionBtn.textContent = t.addRegion;
     document.querySelectorAll('.copy-section h2')[0].textContent = t.chatOutput;
+    calendarBtn.innerHTML = `<span class="icon">📅</span> ${t.addToCalendar}`;
     copyBtn.innerHTML = `<span class="icon">📋</span> ${t.copy}`;
     regionSearchInput.placeholder = t.searchPlaceholder;
     closeModalBtn.textContent = t.cancel;
@@ -289,7 +327,7 @@ async function copyToClipboard() {
     try {
         await navigator.clipboard.writeText(text);
         const originalText = copyBtn.innerHTML;
-        copyBtn.innerHTML = '<span class="icon">✅</span> コピー完了！';
+        copyBtn.innerHTML = '<span class="icon">✅</span> ' + translations[state.lang].copied;
         copyBtn.style.background = 'var(--success)';
         setTimeout(() => {
             copyBtn.innerHTML = originalText;
@@ -298,6 +336,55 @@ async function copyToClipboard() {
     } catch (err) {
         alert('コピーに失敗しました');
     }
+}
+
+function openCalendar(service) {
+    const baseDateTime = DateTime.fromISO(`${state.baseDate}T${state.baseTime}`, { zone: state.baseTimezone });
+    const endDateTime = baseDateTime.plus({ minutes: state.duration });
+    const t = translations[state.lang];
+
+    const fmt = (dt) => dt.toFormat("yyyyMMdd'T'HHmmss'Z'");
+    const start = fmt(baseDateTime.toUTC());
+    const end = fmt(endDateTime.toUTC());
+    const title = encodeURIComponent(t.eventTitle);
+    const details = encodeURIComponent(chatPreview.textContent);
+
+    let url = '';
+    if (service === 'google') {
+        url = `https://www.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${start}/${end}&details=${details}`;
+    } else if (service === 'outlook') {
+        url = `https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent&subject=${title}&startdt=${baseDateTime.toISO()}&enddt=${endDateTime.toISO()}&body=${details}`;
+    }
+    window.open(url, '_blank');
+}
+
+function downloadICS() {
+    const baseDateTime = DateTime.fromISO(`${state.baseDate}T${state.baseTime}`, { zone: state.baseTimezone });
+    const endDateTime = baseDateTime.plus({ minutes: state.duration });
+    const t = translations[state.lang];
+
+    const fmt = (dt) => dt.toFormat("yyyyMMdd'T'HHmmss'Z'");
+    
+    const icsContent = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PROID:-//Global Meeting Coordinator//JP',
+        'BEGIN:VEVENT',
+        `DTSTART:${fmt(baseDateTime.toUTC())}`,
+        `DTEND:${fmt(endDateTime.toUTC())}`,
+        `SUMMARY:${t.eventTitle}`,
+        `DESCRIPTION:${chatPreview.textContent.replace(/\n/g, '\\n')}`,
+        'END:VEVENT',
+        'END:VCALENDAR'
+    ].join('\n');
+
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const url = window.URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'meeting.ics';
+    anchor.click();
+    window.URL.revokeObjectURL(url);
 }
 
 // Start

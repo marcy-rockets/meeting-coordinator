@@ -281,6 +281,45 @@ body {
     color: var(--text-main);
 }
 
+/* Button Group & Dropdown */
+.button-group {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-content {
+    position: absolute;
+    right: 0;
+    top: 110%;
+    min-width: 200px;
+    z-index: 50;
+    padding: 0.5rem;
+    border-radius: 16px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    overflow: hidden;
+}
+
+.dropdown-content a {
+    color: var(--text-main);
+    padding: 0.8rem 1rem;
+    text-decoration: none;
+    display: block;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: background 0.2s;
+}
+
+.dropdown-content a:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
 /* Day Badges */
 .day-badge {
     display: inline-block;

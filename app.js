@@ -313,25 +313,41 @@ function searchRegions(query) {
 
 function renderSearchResults(results) {
     searchResults.innerHTML = '';
+    if (results.length === 0) {
+        searchResults.innerHTML = '<div class="search-result-item" style="opacity: 0.5; pointer-events: none;">No results found</div>';
+        return;
+    }
+    
     results.forEach(z => {
         const div = document.createElement('div');
         div.className = 'search-result-item';
-        div.textContent = `${z.name} (${z.tz})`;
-        div.onclick = () => {
+        div.innerHTML = `<strong>${z.name}</strong> <span style="opacity:0.6; font-size:0.8em">(${z.tz})</span>`;
+        div.style.cursor = 'pointer';
+        
+        div.addEventListener('click', () => {
             addRegion(z);
             regionModal.classList.add('hidden');
             regionSearchInput.value = '';
             searchResults.innerHTML = '';
-        };
+        });
         searchResults.appendChild(div);
     });
 }
 
-function addRegion(region) {
+function addRegion(regionData) {
     const id = Date.now().toString();
-    state.regions.push({ id, ...region });
-    fetchHolidaysForAll(); // Fetch for new region
-    render();
+    // Safety check to ensure we have required fields
+    if (!regionData || !regionData.tz) return;
+    
+    state.regions.push({ 
+        id, 
+        name: regionData.name, 
+        tz: regionData.tz, 
+        country: regionData.country || 'US' 
+    });
+    
+    render(); // Render immediately
+    fetchHolidaysForAll().catch(err => console.error("Holiday fetch failed but continuing:", err));
 }
 
 async function copyToClipboard() {
